@@ -2,7 +2,17 @@ import pytesseract
 from PIL import Image
 import os
 import argparse
+import logging
 
+logging.basicConfig(level=logging.INFO)
+
+def add_task(description):
+    logging.info(f"Task added: {description}")  
+    return {"description": description, "status": "Not Completed"}
+
+add_task("Learn Python logging")
+add_task("Extract text from images or directories of images.")
+add_task("Preprocess images to grayscale before text extraction.")
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Extract text from images or directories of images.")
     parser.add_argument("--input", required=True, help="Path to an image or directory of images.")
