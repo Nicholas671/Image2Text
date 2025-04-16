@@ -10,9 +10,37 @@ def add_task(description):
     logging.info(f"Task added: {description}")  
     return {"description": description, "status": "Not Completed"}
 
+
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+def add_task(description):
+    # Input validation
+    if not description.strip():
+        logging.error("Error: Task description cannot be empty.")
+        return None
+    if len(description) > 50:
+        logging.error("Error: Task description is too long. Max 50 characters.")
+        return None
+
+    # Task creation
+    task = {"description": description, "status": "Not Completed"}
+    logging.info(f"Task added: {description}")
+    return task
+
+
+
 add_task("Learn Python logging")
 add_task("Extract text from images or directories of images.")
 add_task("Preprocess images to grayscale before text extraction.")
+add_task("")  # Should log an error about being empty
+add_task("A very long task description that exceeds the fifty-character limit.")  # Should log an error about length
+add_task("Complete the Python project")  # Should log the task addition
+
+
+
+
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Extract text from images or directories of images.")
     parser.add_argument("--input", required=True, help="Path to an image or directory of images.")
