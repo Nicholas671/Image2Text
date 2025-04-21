@@ -4,14 +4,6 @@ import os
 import argparse
 import logging
 
-logging.basicConfig(level=logging.INFO)
-
-def add_task(description):
-    logging.info(f"Task added: {description}")  
-    return {"description": description, "status": "Not Completed"}
-
-
-import logging
 
 logging.basicConfig(level=logging.INFO)
 
@@ -29,6 +21,16 @@ def add_task(description):
     logging.info(f"Task added: {description}")
     return task
 
+def toggle_task_status(task):
+  if task["status"] == "Not Completed":
+    task["status"] = "Completed"
+  else:
+      task["status"] = "Not Completed"
+      print(f"Task status updated to: {task['status']}")
+  return task
+
+task = {"description": "Learn Python logging", "status": "Not Completed"}
+toggle_task_status(task)  # Toggle the task status
 
 
 add_task("Learn Python logging")
@@ -57,15 +59,19 @@ def process_image_directory(directory_path, output_directory=None):
     for filename in os.listdir(directory_path):
         file_path = os.path.join(directory_path, filename)
         if os.path.isfile(file_path): 
-            print(f"Processing file: {filename}")
-            extracted_text = extract_text_from_image(file_path)
-            if extracted_text:
-                if output_directory:
-                    os.makedirs(output_directory, exist_ok=True) 
-                    output_path = os.path.join(output_directory, f"{filename}_text.txt")
-                else:
-                    output_path = f"./output/{filename}_text.txt"
-                save_text_to_file(extracted_text, output_path)
+            try:
+                print(f"Processing file: {filename}")
+                extracted_text = extract_text_from_image(file_path)
+                if extracted_text:
+                    if output_directory:
+                        os.makedirs(output_directory, exist_ok=True) 
+                        output_path = os.path.join(output_directory, f"{filename}_text.txt")
+                    else:
+                        output_path = f"./output/{filename}_text.txt"
+                    save_text_to_file(extracted_text, output_path)
+            except Exception as e:
+                print(f"Error processing file {filename}: {e}")
+
 
 def preprocess_image(image):
     grayscale_image = image.convert("L")  
