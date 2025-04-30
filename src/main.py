@@ -4,6 +4,9 @@ import os
 import argparse
 import logging
 
+DEFAULT_OUTPUT_DIR = "./output"
+
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,20 +29,26 @@ def toggle_task_status(task):
     task["status"] = "Completed"
   else:
       task["status"] = "Not Completed"
-      print(f"Task status updated to: {task['status']}")
+      logging.info(f"Task status updated to: {task['status']}")
   return task
 
 task = {"description": "Learn Python logging", "status": "Not Completed"}
-toggle_task_status(task)  # Toggle the task status
+toggle_task_status(task)  
 
 
 add_task("Learn Python logging")
 add_task("Extract text from images or directories of images.")
 add_task("Preprocess images to grayscale before text extraction.")
-add_task("")  # Should log an error about being empty
+add_task("")  
 add_task("A very long task description that exceeds the fifty-character limit.")  # Should log an error about length
 add_task("Complete the Python project")  # Should log the task addition
 
+def test_add_task():
+    assert add_task("") is None
+    assert add_task("A valid task") == {"description": "A vaild task", "status": "Not Completed"}
+    assert add_task("Too long task description that exceeds fifty characters") is None
+
+test_add_task()
 
 
 
@@ -67,15 +76,22 @@ def process_image_directory(directory_path, output_directory=None):
                         os.makedirs(output_directory, exist_ok=True) 
                         output_path = os.path.join(output_directory, f"{filename}_text.txt")
                     else:
-                        output_path = f"./output/{filename}_text.txt"
+                        output_path = os.path.join(DEFAULT_OUTPUT_DIR, f"{filename}_text.txt")
                     save_text_to_file(extracted_text, output_path)
             except Exception as e:
                 print(f"Error processing file {filename}: {e}")
 
 
 def preprocess_image(image):
-    grayscale_image = image.convert("L")  
-    return grayscale_image
+    grayscale_image = image.convert("L")
+    
+    scale_factor = 1.5
+
+    resized_image = grayscale_image.resize((grayscale_image.width * scale_factor, grayscale_image.height * scale_factor), Image.ANTIALIAS)
+    
+    threshold = grayscale_image.histogram().index(max(grayscale_image.histogram()))
+    
+    return resized_image.point(lambda p: p > threshold and 255)
 
 def extract_text_from_image(image_path):
     try:
