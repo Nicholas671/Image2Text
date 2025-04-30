@@ -3,6 +3,7 @@ from PIL import Image
 import os
 import argparse
 import logging
+from googletrans import Translator
 
 DEFAULT_OUTPUT_DIR = "./output"
 
@@ -50,12 +51,20 @@ def test_add_task():
 
 test_add_task()
 
-
+def translate_text(text, target_language="en"):
+    translator = Translator()
+    try: 
+        translated = translator.translate(text, dest=target_language)
+        return translated.text
+    except Exception as e:
+        print(f"Error during translation: {e}")
+        return text 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="Extract text from images or directories of images.")
     parser.add_argument("--input", required=True, help="Path to an image or directory of images.")
     parser.add_argument("--output", required=False, help="Path to save the extracted text. If omitted, text is printed.")
+    parser.add_argument("--language", required=False, help="Target language for translation (e.g., 'en' for English, 'es' for Spanish).")
     return parser.parse_args()
 
 
@@ -64,13 +73,15 @@ def save_text_to_file(text, output_path):
         file.write(text)
         print(f"Text saved to {output_path}")
 
-def process_image_directory(directory_path, output_directory=None):
+def process_image_directory(directory_path, output_directory=None, target_language=None):
     for filename in os.listdir(directory_path):
         file_path = os.path.join(directory_path, filename)
         if os.path.isfile(file_path): 
             try:
                 print(f"Processing file: {filename}")
                 extracted_text = extract_text_from_image(file_path)
+                if extracted_text and target_language:
+                    extract_text = translate_text(extract_text, target_language)
                 if extracted_text:
                     if output_directory:
                         os.makedirs(output_directory, exist_ok=True) 
@@ -108,18 +119,19 @@ def extract_text_from_image(image_path):
         return ""
 
 
-import os
-import argparse
+
 
 def main():
     args = parse_arguments()
 
     if os.path.isdir(args.input):
         print(f"Processing directory: {args.input}")
-        process_image_directory(args.input, args.output)
+        process_image_directory(args.input, args.output, args.language)
     elif os.path.isfile(args.input):
         print(f"Processing single file: {args.input}")
         extracted_text = extract_text_from_image(args.input)
+        if args.language:
+            extracted_text = translate_text(extracted_text, args.language)
         if args.output:
             save_text_to_file(extracted_text, args.output)
         else:
