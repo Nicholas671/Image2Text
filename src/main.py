@@ -1,13 +1,13 @@
 import pytesseract
 from PIL import Image
+from multiprocessing import Pool
 import os
 import argparse
 import logging
 from googletrans import Translator
+from functools import lru_cache
 
 DEFAULT_OUTPUT_DIR = "./output"
-
-
 
 logging.basicConfig(level=logging.INFO)
 
@@ -26,16 +26,15 @@ def add_task(description):
     return task
 
 def toggle_task_status(task):
-  if task["status"] == "Not Completed":
-    task["status"] = "Completed"
-  else:
-      task["status"] = "Not Completed"
-      logging.info(f"Task status updated to: {task['status']}")
-  return task
+    if task["status"] == "Not Completed":
+        task["status"] = "Completed"
+    else:
+        task["status"] = "Not Completed"
+        logging.info(f"Task status updated to: {task['status']}")
+    return task
 
 task = {"description": "Learn Python logging", "status": "Not Completed"}
 toggle_task_status(task)  
-
 
 add_task("Learn Python logging")
 add_task("Extract text from images or directories of images.")
@@ -67,31 +66,35 @@ def parse_arguments():
     parser.add_argument("--language", required=False, help="Target language for translation (e.g., 'en' for English, 'es' for Spanish).")
     return parser.parse_args()
 
-
 def save_text_to_file(text, output_path):
     with open(output_path, "w") as file:
         file.write(text)
         print(f"Text saved to {output_path}")
 
-def process_image_directory(directory_path, output_directory=None, target_language=None):
-    for filename in os.listdir(directory_path):
-        file_path = os.path.join(directory_path, filename)
-        if os.path.isfile(file_path): 
-            try:
-                print(f"Processing file: {filename}")
-                extracted_text = extract_text_from_image(file_path)
-                if extracted_text and target_language:
-                    extract_text = translate_text(extract_text, target_language)
-                if extracted_text:
-                    if output_directory:
-                        os.makedirs(output_directory, exist_ok=True) 
-                        output_path = os.path.join(output_directory, f"{filename}_text.txt")
-                    else:
-                        output_path = os.path.join(DEFAULT_OUTPUT_DIR, f"{filename}_text.txt")
-                    save_text_to_file(extracted_text, output_path)
-            except Exception as e:
-                print(f"Error processing file {filename}: {e}")
+def process_single_image(args):
+    file_path, output_directory, target_language = args
+    try:
+        print(f"Processing file: {os.path.basename(file_path)}")
+        extracted_text = extract_text_from_image(file_path)
+        if extracted_text and target_language:
+            extracted_text = translate_text(extracted_text, target_language)
+        if extracted_text:
+            output_directory = args.output if args.output else DEFAULT_OUTPUT_DIR
+            os.makedirs(output_directory, exist_ok=True)
+            output_path = os.path.join(output_directory, f"{os.path.basename(file_path)}_text.txt")
+            save_text_to_file(extracted_text, output_path)
+    except Exception as e:
+        print(f"Error processing file {os.path.basename(file_path)}: {e}")
 
+def process_image_directory(directory_path, output_directory=None, target_language=None):
+    """Process all images in a directory using multiprocessing."""
+    tasks = [
+        (os.path.join(directory_path, filename), output_directory, target_language)
+        for filename in os.listdir(directory_path)
+        if os.path.isfile(os.path.join(directory_path, filename))
+    ]
+    with Pool() as pool:
+        pool.map(process_single_image, tasks)
 
 def preprocess_image(image):
     grayscale_image = image.convert("L")
@@ -117,9 +120,6 @@ def extract_text_from_image(image_path):
     except Exception as e:
         print(f"An error occurred: {e}")
         return ""
-
-
-
 
 def main():
     args = parse_arguments()
