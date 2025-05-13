@@ -6,6 +6,10 @@ import argparse
 import logging
 from googletrans import Translator
 from functools import lru_cache
+import nltk
+from nltk.tokenize import word_tokenize
+
+nltk.download('punkt')
 
 DEFAULT_OUTPUT_DIR = "./output"
 
@@ -50,6 +54,9 @@ def test_add_task():
 
 test_add_task()
 
+
+
+
 def translate_text(text, target_language="en"):
     translator = Translator()
     try: 
@@ -71,23 +78,37 @@ def save_text_to_file(text, output_path):
         file.write(text)
         print(f"Text saved to {output_path}")
 
+@lru_cache(maxsize=128)
+def tokenize_text(text: str):
+    tokens = word_tokenize(text)
+    return tokens
+
 def process_single_image(args):
     file_path, output_directory, target_language = args
     try:
         print(f"Processing file: {os.path.basename(file_path)}")
         extracted_text = extract_text_from_image(file_path)
-        if extracted_text and target_language:
-            extracted_text = translate_text(extracted_text, target_language)
-        if extracted_text:
-            output_directory = args.output if args.output else DEFAULT_OUTPUT_DIR
+
+        if extracted_text and extracted_text.strip():
+            if target_language:
+                extracted_text = translate_text(extracted_text, target_language)
+            tokens = tokenize_text(extracted_text)
+            print(f"Tokenized {len(tokens)} words: {tokens}")
+            output_directory = output_directory if output_directory else DEFAULT_OUTPUT_DIR
+
             os.makedirs(output_directory, exist_ok=True)
             output_path = os.path.join(output_directory, f"{os.path.basename(file_path)}_text.txt")
-            save_text_to_file(extracted_text, output_path)
+            save_text_to_file(" ".join(tokens), output_path)
+
+    except FileNotFoundError as e:
+        print(f"File not found: {file_path} - {e}")
+    except IOError as e:
+        print(f"Error reading file {file_path}: {e}")
     except Exception as e:
-        print(f"Error processing file {os.path.basename(file_path)}: {e}")
+        print(f"Unexpected error processing {file_path}: {e}")
+
 
 def process_image_directory(directory_path, output_directory=None, target_language=None):
-    """Process all images in a directory using multiprocessing."""
     tasks = [
         (os.path.join(directory_path, filename), output_directory, target_language)
         for filename in os.listdir(directory_path)
